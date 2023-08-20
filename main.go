@@ -62,7 +62,10 @@ func startMemcache(port string) {
 func stopMemcache() {
 	for _, cmd := range memcacheProcesses {
 		if cmd != nil && cmd.Process != nil {
-			cmd.Process.Kill()
+			err := cmd.Process.Kill()
+			if err != nil {
+				log.Printf("Error stopping memcache process (pid %d): %v", cmd.Process.Pid, err)
+			}
 		}
 	}
 }
@@ -72,6 +75,7 @@ func main() {
 	startMemcache("33014")
 	startMemcache("33015")
 	startMemcache("33016")
+	defer stopMemcache()
 	opts := parseOptions()
 	setupLogging(opts)
 
@@ -83,7 +87,6 @@ func main() {
 	log.Printf("Memc loader started with options: %+v\n", opts)
 
 	mainFunc(opts)
-	defer stopMemcache()
 }
 
 func parseOptions() Options {

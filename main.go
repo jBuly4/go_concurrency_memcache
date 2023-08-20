@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -47,7 +48,30 @@ type AppsInstalled struct {
 	Apps    []uint32
 }
 
+var memcacheProcesses []*exec.Cmd
+
+func startMemcache(port string) {
+	cmd := exec.Command("memcached", "-p", port, "-d")
+	err := cmd.Start()
+	if err != nil {
+		log.Fatalf("Failed to start memcache on port %s: %v", port, err)
+	}
+	memcacheProcesses = append(memcacheProcesses, cmd)
+}
+
+func stopMemcache() {
+	for _, cmd := range memcacheProcesses {
+		if cmd != nil && cmd.Process != nil {
+			cmd.Process.Kill()
+		}
+	}
+}
+
 func main() {
+	startMemcache("33013")
+	startMemcache("33014")
+	startMemcache("33015")
+	startMemcache("33016")
 	opts := parseOptions()
 	setupLogging(opts)
 
@@ -59,6 +83,7 @@ func main() {
 	log.Printf("Memc loader started with options: %+v\n", opts)
 
 	mainFunc(opts)
+	defer stopMemcache()
 }
 
 func parseOptions() Options {
